@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2048 Game</title>
+
+    <!-- css file just for the looks -->
+    <link rel="stylesheet" href="2048.css">
+
+    <!-- defer makes sure js waits until html is ready -->
+    <script src="2048.js" defer></script>
+</head>
+<body>
+    <div class="outerBox">   
+        <!-- big title at the top -->
+    <h1>2048</h1>
+    <hr>
+
+    <!-- score display -->
+    <h2>Score:<span id="score">0</span></h2>
+
+    <!-- button to wipe the board and start fresh -->
+    <button id="resetBtn" type="button">Reset</button>
+
+    <!-- counter to show how many moves are possible -->
+    <h2>Possible Moves:<span id="moves">0</span></h2>
+
+    <!-- the actual game grid will be generated inside this -->
+    <div id="board"></div>
+
+    <!-- game over message, hidden at first -->
+    <h2 id="gameOver" style="display:none; color:red;">Game Over!</h2>
+    </div>
+</body>
+</html>

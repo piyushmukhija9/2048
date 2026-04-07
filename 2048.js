@@ -1,25 +1,57 @@
-let board = [];        // main grid: 4x4 array of numbers
-let score = 0;         // current score
-const rows = 4;        // grid rows
-const columns = 4;     // grid cols
+// --- Add these variables at the top of your file ---
+let touchStartX = 0;
+let touchStartY = 0;
+let touchEndX = 0;
+let touchEndY = 0;
 
-// boot game on page load
+let board = [];
+let score = 0;
+const rows = 4;
+const columns = 4;
+
 window.onload = function() {
     setGame();
+}
+
+// ----------------------------------------------
+// TOUCH CONTROLS (Add this section)
+// ----------------------------------------------
+document.addEventListener('touchstart', e => {
+    touchStartX = e.changedTouches[0].screenX;
+    touchStartY = e.changedTouches[0].screenY;
+}, {passive: true});
+
+document.addEventListener('touchend', e => {
+    touchEndX = e.changedTouches[0].screenX;
+    touchEndY = e.changedTouches[0].screenY;
+    handleSwipe();
+}, {passive: true});
+
+function handleSwipe() {
+    let dx = touchEndX - touchStartX;
+    let dy = touchEndY - touchStartY;
+    const threshold = 30; // Minimum distance to be considered a swipe
+
+    if (Math.abs(dx) > Math.abs(dy)) {
+        if (Math.abs(dx) > threshold) {
+            if (dx > 0) slideRight();
+            else slideLeft();
+        }
+    } else {
+        if (Math.abs(dy) > threshold) {
+            if (dy > 0) slideDown();
+            else slideUp();
+        }
+    }
 }
 
 // ----------------------------------------------
 // GAME SETUP + RESET
 // ----------------------------------------------
 function setGame() {
-    // clear old board (needed on reset)
     document.getElementById("board").innerHTML = "";
-
-    // reset score + HUD
     score = 0;
-    updateScore();
-
-    // start with empty 4x4
+    
     board = [
         [0, 0, 0, 0],
         [0, 0, 0, 0],
@@ -27,27 +59,23 @@ function setGame() {
         [0, 0, 0, 0]
     ];
 
-    // build grid DOM
     for (let r = 0; r < rows; r++) {
         for (let c = 0; c < columns; c++) {
             let tile = document.createElement("div");
-            tile.id = r + "-" + c; // like "0-2"
+            tile.id = r + "-" + c;
             updateTile(tile, board[r][c]);
             document.getElementById("board").append(tile);
         }
     }
 
-    // drop two starter 2’s
     setTwo();
     setTwo();
-
-    // HUD update
     syncHUD();
 }
 
-// reset button click
 document.getElementById("resetBtn").addEventListener("click", () => {
-    document.getElementById("gameOver").style.display = "none";
+    const go = document.getElementById("gameOver");
+    if (go) go.style.display = "none";
     setGame();
 });
 
@@ -64,13 +92,13 @@ function updateTile(tile, num) {
         if (num <= 4096) {
             tile.classList.add("x" + num);
         } else {
-            tile.classList.add("x9182"); // big boys same skin
+            tile.classList.add("x9182");
         }
     }
 }
 
 // ----------------------------------------------
-// CONTROLS
+// KEYBOARD CONTROLS
 // ----------------------------------------------
 document.addEventListener("keyup", (e) => {
     if (e.code === "ArrowLeft") slideLeft();
@@ -82,17 +110,12 @@ document.addEventListener("keyup", (e) => {
 // ----------------------------------------------
 // SLIDE / MERGE LOGIC
 // ----------------------------------------------
-
-// strip out zeros
 function filterZero(row) {
     return row.filter(num => num != 0);
 }
 
-// slide + merge one row left
 function slide(row) {
     row = filterZero(row);
-
-    // merge step
     for (let i = 0; i < row.length - 1; i++) {
         if (row[i] === row[i + 1]) {
             row[i] *= 2;
@@ -100,44 +123,40 @@ function slide(row) {
             score += row[i];
         }
     }
-
     row = filterZero(row);
-
-    // pad back with zeros
     while (row.length < columns) {
         row.push(0);
     }
     return row;
 }
 
-// move whole board left
+// Updated Move Functions with "Change Detection"
 function slideLeft() {
+    let original = JSON.stringify(board);
     for (let r = 0; r < rows; r++) {
-        let row = slide(board[r]);
-        board[r] = row;
+        board[r] = slide(board[r]);
         for (let c = 0; c < columns; c++) {
             updateTile(document.getElementById(r + "-" + c), board[r][c]);
         }
     }
-    afterMove();
+    if (original !== JSON.stringify(board)) afterMove();
 }
 
-// move right
 function slideRight() {
+    let original = JSON.stringify(board);
     for (let r = 0; r < rows; r++) {
         let row = board[r].slice().reverse();
         row = slide(row);
-        row.reverse();
-        board[r] = row;
+        board[r] = row.reverse();
         for (let c = 0; c < columns; c++) {
             updateTile(document.getElementById(r + "-" + c), board[r][c]);
         }
     }
-    afterMove();
+    if (original !== JSON.stringify(board)) afterMove();
 }
 
-// move up
 function slideUp() {
+    let original = JSON.stringify(board);
     for (let c = 0; c < columns; c++) {
         let col = [board[0][c], board[1][c], board[2][c], board[3][c]];
         col = slide(col);
@@ -146,11 +165,11 @@ function slideUp() {
             updateTile(document.getElementById(r + "-" + c), board[r][c]);
         }
     }
-    afterMove();
+    if (original !== JSON.stringify(board)) afterMove();
 }
 
-// move down
 function slideDown() {
+    let original = JSON.stringify(board);
     for (let c = 0; c < columns; c++) {
         let col = [board[0][c], board[1][c], board[2][c], board[3][c]].reverse();
         col = slide(col);
@@ -160,13 +179,12 @@ function slideDown() {
             updateTile(document.getElementById(r + "-" + c), board[r][c]);
         }
     }
-    afterMove();
+    if (original !== JSON.stringify(board)) afterMove();
 }
 
-// post-move actions
 function afterMove() {
-    setTwo();       // add new 2
-    syncHUD();      // refresh HUD
+    setTwo();
+    syncHUD();
 }
 
 // ----------------------------------------------
@@ -174,7 +192,6 @@ function afterMove() {
 // ----------------------------------------------
 function setTwo() {
     if (!hasEmptyTile()) return;
-
     let found = false;
     while (!found) {
         let r = Math.floor(Math.random() * rows);
@@ -182,14 +199,12 @@ function setTwo() {
         if (board[r][c] === 0) {
             board[r][c] = 2;
             let tile = document.getElementById(r + "-" + c);
-            tile.innerText = "2";
-            tile.classList.add("x2");
+            updateTile(tile, 2);
             found = true;
         }
     }
 }
 
-// check for blanks
 function hasEmptyTile() {
     for (let r = 0; r < rows; r++) {
         for (let c = 0; c < columns; c++) {
@@ -206,51 +221,46 @@ function updateScore() {
     document.getElementById("score").innerText = score;
 }
 
-// can you move left?
-function canMoveLeft(b = board) {
+function canMoveLeft() {
     for (let r = 0; r < rows; r++) {
         for (let c = 1; c < columns; c++) {
-            if (b[r][c] === 0) continue;
-            if (b[r][c - 1] === 0 || b[r][c - 1] === b[r][c]) return true;
+            if (board[r][c] === 0) continue;
+            if (board[r][c - 1] === 0 || board[r][c - 1] === board[r][c]) return true;
         }
     }
     return false;
 }
 
-// can you move right?
-function canMoveRight(b = board) {
+function canMoveRight() {
     for (let r = 0; r < rows; r++) {
         for (let c = columns - 2; c >= 0; c--) {
-            if (b[r][c] === 0) continue;
-            if (b[r][c + 1] === 0 || b[r][c + 1] === b[r][c]) return true;
+            if (board[r][c] === 0) continue;
+            if (board[r][c + 1] === 0 || board[r][c + 1] === board[r][c]) return true;
         }
     }
     return false;
 }
 
-// can you move up?
-function canMoveUp(b = board) {
+function canMoveUp() {
     for (let c = 0; c < columns; c++) {
         for (let r = 1; r < rows; r++) {
-            if (b[r][c] === 0) continue;
-            if (b[r - 1][c] === 0 || b[r - 1][c] === b[r][c]) return true;
+            if (board[r][c] === 0) continue;
+            if (board[r - 1][c] === 0 || board[r - 1][c] === board[r][c]) return true;
         }
     }
     return false;
 }
 
-// can you move down?
-function canMoveDown(b = board) {
+function canMoveDown() {
     for (let c = 0; c < columns; c++) {
         for (let r = rows - 2; r >= 0; r--) {
-            if (b[r][c] === 0) continue;
-            if (b[r + 1][c] === 0 || b[r + 1][c] === b[r][c]) return true;
+            if (board[r][c] === 0) continue;
+            if (board[r + 1][c] === 0 || board[r + 1][c] === board[r][c]) return true;
         }
     }
     return false;
 }
 
-// count how many directions are open
 function countPossibleMoves() {
     let cnt = 0;
     if (canMoveLeft()) cnt++;
@@ -260,13 +270,12 @@ function countPossibleMoves() {
     return cnt;
 }
 
-// HUD refresh
 function syncHUD() {
     updateScore();
     let moves = countPossibleMoves();
-    document.getElementById("moves").innerText = moves;
+    const movesDisplay = document.getElementById("moves");
+    if (movesDisplay) movesDisplay.innerText = moves;
 
-    // show/hide GAME OVER
     const go = document.getElementById("gameOver");
     if (go) go.style.display = (moves === 0) ? "block" : "none";
 }
